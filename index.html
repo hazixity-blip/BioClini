@@ -1,104 +1,198 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bio-Clinical Translation Pipeline</title>
-    <!-- Use the verified stable CDN builds -->
-    <link rel="stylesheet" href="https://jsdelivr.net" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script src="https://jsdelivr.net"></script>
-    <script>
-      stlite.mount(
-        {
-          requirements: ["requests"],
-          entrypoint: "main.py",
-          files: {
-            "main.py": `
-import streamlit as st
-import requests
-import io
-import csv
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Clinical Informatics Platform</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --success: #22c55e;
+            --warning: #eab308;
+            --error: #ef4444;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        h1 { font-size: 24px; margin-bottom: 5px; color: var(--text-main); }
+        .subtitle { color: var(--text-muted); margin-bottom: 25px; font-size: 14px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #334155;
+            color: white;
+            font-size: 16px;
+        }
+        input:focus { outline: 2px solid var(--accent); }
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { opacity: 0.9; }
+        .status-box { padding: 12px; border-radius: 6px; margin-bottom: 20px; display: none; font-size: 14px; }
+        .info { background: #1e3a8a; color: #93c5fd; border-left: 4px solid var(--accent); }
+        .success { background: #064e3b; color: #6ee7b7; border-left: 4px solid var(--success); }
+        .error { background: #7f1d1d; color: #fca5a5; border-left: 4px solid var(--error); }
+        .warning { background: #78350f; color: #fde047; border-left: 4px solid var(--warning); padding: 15px; border-radius: 6px; }
+        .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; display: none; }
+        .metric-card { background: #334155; padding: 15px; border-radius: 6px; text-align: center; }
+        .metric-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+        .metric-value { font-size: 18px; font-weight: bold; color: var(--accent); margin-top: 5px; }
+        .output-card { display: none; background: #334155; padding: 20px; border-radius: 6px; margin-top: 20px; }
+        pre { background: #0f172a; padding: 15px; border-radius: 6px; color: #38bdf8; overflow-x: auto; font-family: monospace; }
+    </style>
+</head>
+<body>
 
-st.set_page_config(page_title="Bio-Clinical Pipeline", page_icon="🧬", layout="centered")
-st.title("🧬 Bio-Clinical Informatics Platform")
-st.write("An API-driven system bridging molecular discovery data registries with clinical AMCI coding standards.")
-
-st.markdown("---")
-
-mock_database_csv = """drug,main_term,subterm_1,subterm_2,icd10,guideline,target,disease
-imatinib,Leukemia,Myeloid (granulocytic),Chronic (BCR-ABL positive),C92.10,Per ICD-10-CM Chapter 2 Guidelines for Hematopoietic tissue,BCR-ABL Tyrosine Kinase,Chronic Myeloid Leukemia
-trastuzumab,Neoplasm,Breast Primary Malignant,Unspecified female breast,C50.919,Defaults to unspecified site if quadrant laterality is absent,HER2 Receptor,HER2+ Breast Cancer
-olaparib,Neoplasm,Ovary Primary Malignant,Unspecified ovary,C56.9,Assigned based on default solid origin neoplasm tracking rules,PARP Enzyme,Ovarian Cancer
-paclitaxel,Neoplasm,Lung Primary Malignant,Unspecified bronchus or lung,C34.90,Classified under respiratory organ guidelines for solid masses,Microtubule Stabilizer,Advanced Lung Carcinoma
-doxorubicin,Neoplasm,Bladder Primary Malignant,Unspecified bladder site,C67.9,Mapped based on primary epithelial genitourinary coding parameters,Topoisomerase II,Bladder Carcinoma
-"""
-
-matrix_records = {}
-f = io.StringIO(mock_database_csv.strip())
-reader = csv.DictReader(f)
-for row in reader:
-    matrix_records[row['drug']] = row
-
-user_drug = st.text_input("Enter a Targeted Therapy Generic Drug Name:", placeholder="e.g., imatinib, paclitaxel, doxorubicin")
-
-if user_drug:
-    clean_drug = user_drug.lower().strip()
-    st.info(f"📡 Dispatching network request to official U.S. NIH PubChem Servers for: **{clean_drug.upper()}**")
+<div class="container">
+    <h1>🧬 Bio-Clinical Informatics Platform</h1>
+    <div class="subtitle">An API-driven system bridging molecular discovery data registries with clinical AMCI coding standards.</div>
     
-    domain = "https://nih.gov"
-    target_api_url = f"{domain}/rest/pug/compound/name/{clean_drug}/cids/JSON"
-    
-    try:
-        response = requests.get(target_api_url, timeout=10)
+    <div class="input-group">
+        <input type="text" id="drugInput" placeholder="Enter drug name (e.g., imatinib, trastuzumab, olaparib)">
+        <button onclick="runPipeline()">Translate</button>
+    </div>
+
+    <div id="statusBox" class="status-box"></div>
+
+    <div id="metricsBlock" class="metrics">
+        <div class="metric-card">
+            <div class="metric-label">PubChem Compound ID</div>
+            <div id="cidValue" class="metric-value">-</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Molecular Structure</div>
+            <div id="formulaValue" class="metric-value">-</div>
+        </div>
+    </div>
+
+    <div id="outputCard" class="output-card"></div>
+</div>
+
+<script>
+// Localized AMCI Structural Coding Translation Matrix Sheet
+const translationMatrix = {
+    "imatinib": {
+        "target": "BCR-ABL Tyrosine Kinase",
+        "disease": "Chronic Myeloid Leukemia (CML), BCR-ABL positive",
+        "icd10": "C92.10",
+        "main_term": "Leukemia",
+        "subterm_1": "Myeloid (granulocytic)",
+        "subterm_2": "Chronic (BCR-ABL positive)",
+        "guideline": "ICD-10-CM Chapter 2 Neoplasm Guidelines state that systemic malignancies of lymphatic and hematopoietic tissue must follow specific cellular lineage classifications. For CML, 'C92.10' is selected as it specifies the chronic phase without mention of remission."
+    },
+    "trastuzumab": {
+        "target": "HER2 Receptor Overexpression",
+        "disease": "Malignant Neoplasm of Breast (HER2 Positive)",
+        "icd10": "C50.919",
+        "main_term": "Neoplasm",
+        "subterm_1": "Breast, Malignant Primary",
+        "subterm_2": "Unspecified site, unspecified female breast",
+        "guideline": "According to the ICD-10-CM Neoplasm Table, breast malignancies are classified by anatomical site quadrant and laterality. When clinical trial documentation lacks specific laterality parameters, code selection defaults to 'C50.919' for unspecified malignant primary breast sites."
+    },
+    "olaparib": {
+        "target": "PARP Genetic Repair Enzyme",
+        "disease": "Malignant Neoplasm of Ovary",
+        "icd10": "C56.9",
+        "main_term": "Neoplasm",
+        "subterm_1": "Ovary, Malignant Primary",
+        "subterm_2": "Unspecified ovary",
+        "guideline": "Per ICD-10-CM Chapter 2 guidelines, primary malignant solid tumors are coded to the site of origin. For ovarian cancer targeting BRCA mutations via PARP inhibitors, code 'C56.9' is assigned for unspecified laterality based on default index listings."
+    }
+};
+
+async function runPipeline() {
+    const rawInput = document.getElementById('drugInput').value;
+    const cleanDrug = rawInput.toLowerCase().trim();
+    const statusBox = document.getElementById('statusBox');
+    const metricsBlock = document.getElementById('metricsBlock');
+    const outputCard = document.getElementById('outputCard');
+
+    if (!cleanDrug) return;
+
+    // Reset layout view state
+    outputCard.style.display = 'none';
+    metricsBlock.style.display = 'none';
+    statusBox.className = "status-box info";
+    statusBox.style.display = "block";
+    statusBox.innerHTML = `📡 Dispatching request to official U.S. NIH PubChem Servers for: <b>${cleanDrug.toUpperCase()}</b>`;
+
+    try {
+        // Query the live NIH API endpoint directly from the browser code layer
+        const cidRes = await fetch(`https://nih.gov{cleanDrug}/cids/JSON`);
         
-        if response.status_code == 200:
-            payload = response.json()
-            compound_id = payload["IdentifierList"]["CID"]
-            st.success(f"✅ Connection Established! Registry Entry Located.")
-            
-            formula_api_url = f"{domain}/rest/pug/compound/cid/{compound_id}/property/MolecularFormula/JSON"
-            formula_response = requests.get(formula_api_url).json()
-            formula_string = formula_response["PropertyTable"]["Properties"]["MolecularFormula"]
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(label="PubChem Compound ID", value=str(compound_id))
-            with col2:
-                st.metric(label="Molecular Structure", value=str(formula_string))
-                
-            if clean_drug in matrix_records:
-                match_data = matrix_records[clean_drug]
-                st.markdown("### 📋 AMCI Standardized Alphabetic Index Pathway")
-                st.code(f"""
-Index Search Path:
-└── 1. Main Term: {match_data['main_term']}
-    └── 2. Subterm: {match_data['subterm_1']}
-        └── 3. Specificity: {match_data['subterm_2']}
-            └── 🎯 Final Tabular Verification: {match_data['icd10']}
-                """)
-                
-                st.markdown("### 🚨 Coding Guideline & Rationale")
-                st.warning(match_data['guideline'])
-                
-                st.markdown("### 🏥 Clinical Data Summary")
-                st.markdown(f"""
-                * **🧬 Biomarker Target:** {match_data['target']}
-                * **🩺 Linked Indication:** {match_data['disease']}
-                """)
-            else:
-                st.warning("⚠️ Compound validated on federal network, but administrative ICD-10 clinical data translation requires database mapping expansion.")
-        else:
-            st.error("❌ Compound query rejected: Molecular structure name not recognized by NIH registries.")
-    except Exception as network_issue:
-        st.error(f"❌ Network handshaking error failed: {network_issue}")
-`
-          }
-        },
-        document.getElementById("root")
-      );
-    </script>
-  </body>
+        if (!cidRes.ok) {
+            statusBox.className = "status-box error";
+            statusBox.innerHTML = "❌ Compound query rejected: Structure name not recognized by NIH registries.";
+            return;
+        }
+
+        const cidData = await cidRes.json();
+        const cid = cidData.IdentifierList.CID[0];
+
+        // Fetch corresponding molecular formula layout details
+        const formulaRes = await fetch(`https://nih.gov{cid}/property/MolecularFormula/JSON`);
+        const formulaData = await formulaRes.json();
+        const formula = formulaData.PropertyTable.Properties[0].MolecularFormula;
+
+        // Render data dashboard metrics block
+        statusBox.className = "status-box success";
+        statusBox.innerHTML = "✅ Connection Established! Registry Entry Located.";
+        document.getElementById('cidValue').innerText = cid;
+        document.getElementById('formulaValue').innerText = formula;
+        metricsBlock.style.display = 'grid';
+
+        // Evaluate AMCI parsing logic layer match
+        if (cleanDrug in translationMatrix) {
+            const match = translationMatrix[cleanDrug];
+            outputCard.innerHTML = `
+                <h3>📋 AMCI Standardized Alphabetic Index Pathway</h3>
+                <pre>Index Search Path:\n└── 1. Main Term: ${match.main_term}\n    └── 2. Subterm: {match.subterm_1}\n        └── 3. Specificity: ${match.subterm_2}\n            └── 🎯 Final Tabular Verification: ${match.icd10}</pre>
+                <h3>🚨 Coding Guideline & Rationale</h3>
+                <div class="warning">${match.guideline}</div>
+                <h3>🏥 Clinical Data Summary</h3>
+                <ul>
+                    <li><b>🧬 Biomarker Target:</b> ${match.target}</li>
+                    <li><b>🩺 Linked Indication:</b> ${match.disease}</li>
+                </ul>
+            `;
+        } else {
+            outputCard.innerHTML = `<div class="warning">⚠️ Compound validated on federal network, but administrative ICD-10 clinical data translation requires database mapping expansion.</div>`;
+        }
+        outputCard.style.display = 'block';
+
+    } catch (err) {
+        statusBox.className = "status-box error";
+        statusBox.innerHTML = `❌ Network handshaking error failed: ${err.message}`;
+    }
+}
+</script>
+</body>
 </html>
