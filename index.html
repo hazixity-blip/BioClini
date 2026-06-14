@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bio-Clinical Translation Pipeline</title>
+    <!-- Use the verified stable CDN builds -->
     <link rel="stylesheet" href="https://jsdelivr.net" />
   </head>
   <body>
@@ -13,28 +14,42 @@
       stlite.mount(
         {
           requirements: ["requests"],
-          entrypoint: "app.py",
+          entrypoint: "main.py",
           files: {
-            "app.py": `
+            "main.py": `
 import streamlit as st
 import requests
+import io
+import csv
 
 st.set_page_config(page_title="Bio-Clinical Pipeline", page_icon="🧬", layout="centered")
-
 st.title("🧬 Bio-Clinical Informatics Platform")
 st.write("An API-driven system bridging molecular discovery data registries with clinical AMCI coding standards.")
 
 st.markdown("---")
 
-user_drug = st.text_input("Enter a Targeted Therapy Generic Drug Name:", placeholder="e.g., imatinib, trastuzumab, olaparib")
+mock_database_csv = """drug,main_term,subterm_1,subterm_2,icd10,guideline,target,disease
+imatinib,Leukemia,Myeloid (granulocytic),Chronic (BCR-ABL positive),C92.10,Per ICD-10-CM Chapter 2 Guidelines for Hematopoietic tissue,BCR-ABL Tyrosine Kinase,Chronic Myeloid Leukemia
+trastuzumab,Neoplasm,Breast Primary Malignant,Unspecified female breast,C50.919,Defaults to unspecified site if quadrant laterality is absent,HER2 Receptor,HER2+ Breast Cancer
+olaparib,Neoplasm,Ovary Primary Malignant,Unspecified ovary,C56.9,Assigned based on default solid origin neoplasm tracking rules,PARP Enzyme,Ovarian Cancer
+paclitaxel,Neoplasm,Lung Primary Malignant,Unspecified bronchus or lung,C34.90,Classified under respiratory organ guidelines for solid masses,Microtubule Stabilizer,Advanced Lung Carcinoma
+doxorubicin,Neoplasm,Bladder Primary Malignant,Unspecified bladder site,C67.9,Mapped based on primary epithelial genitourinary coding parameters,Topoisomerase II,Bladder Carcinoma
+"""
+
+matrix_records = {}
+f = io.StringIO(mock_database_csv.strip())
+reader = csv.DictReader(f)
+for row in reader:
+    matrix_records[row['drug']] = row
+
+user_drug = st.text_input("Enter a Targeted Therapy Generic Drug Name:", placeholder="e.g., imatinib, paclitaxel, doxorubicin")
 
 if user_drug:
     clean_drug = user_drug.lower().strip()
     st.info(f"📡 Dispatching network request to official U.S. NIH PubChem Servers for: **{clean_drug.upper()}**")
     
     domain = "https://nih.gov"
-    path = f"/rest/pug/compound/name/{clean_drug}/cids/JSON"
-    target_api_url = domain + path
+    target_api_url = f"{domain}/rest/pug/compound/name/{clean_drug}/cids/JSON"
     
     try:
         response = requests.get(target_api_url, timeout=10)
@@ -42,43 +57,11 @@ if user_drug:
         if response.status_code == 200:
             payload = response.json()
             compound_id = payload["IdentifierList"]["CID"]
-            
             st.success(f"✅ Connection Established! Registry Entry Located.")
             
             formula_api_url = f"{domain}/rest/pug/compound/cid/{compound_id}/property/MolecularFormula/JSON"
             formula_response = requests.get(formula_api_url).json()
             formula_string = formula_response["PropertyTable"]["Properties"]["MolecularFormula"]
-            
-            # THE EXPERT UPGRADE: Advanced Translation Matrix with Strict AMCI Guidelines
-            translation_matrix = {
-                "imatinib": {
-                    "target": "BCR-ABL Tyrosine Kinase",
-                    "disease": "Chronic Myeloid Leukemia (CML), BCR-ABL positive",
-                    "icd10": "C92.10",
-                    "main_term": "Leukemia",
-                    "subterm_1": "Myeloid (granulocytic)",
-                    "subterm_2": "Chronic (BCR-ABL positive)",
-                    "guideline": "ICD-10-CM Chapter 2 Neoplasm Guidelines state that systemic malignancies of lymphatic and hematopoietic tissue must follow specific cellular lineage classifications. For CML, 'C92.10' is selected as it specifies the chronic phase without mention of remission."
-                },
-                "trastuzumab": {
-                    "target": "HER2 Receptor Overexpression",
-                    "disease": "Malignant Neoplasm of Breast (HER2 Positive)",
-                    "icd10": "C50.919",
-                    "main_term": "Neoplasm",
-                    "subterm_1": "Breast, Malignant Primary",
-                    "subterm_2": "Unspecified site, unspecified female breast",
-                    "guideline": "According to the ICD-10-CM Neoplasm Table, breast malignancies are classified by anatomical site quadrant and laterality. When clinical trial documentation lacks specific laterality parameters, code selection defaults to 'C50.919' for unspecified malignant primary breast sites."
-                },
-                "olaparib": {
-                    "target": "PARP Genetic Repair Enzyme",
-                    "disease": "Malignant Neoplasm of Ovary",
-                    "icd10": "C56.9",
-                    "main_term": "Neoplasm",
-                    "subterm_1": "Ovary, Malignant Primary",
-                    "subterm_2": "Unspecified ovary",
-                    "guideline": "Per ICD-10-CM Chapter 2 guidelines, primary malignant solid tumors are coded to the site of origin. For ovarian cancer targeting BRCA mutations via PARP inhibitors, code 'C56.9' is assigned for unspecified laterality based on default index listings."
-                }
-            }
             
             col1, col2 = st.columns(2)
             with col1:
@@ -86,11 +69,9 @@ if user_drug:
             with col2:
                 st.metric(label="Molecular Structure", value=str(formula_string))
                 
-            if clean_drug in translation_matrix:
-                match_data = translation_matrix[clean_drug]
+            if clean_drug in matrix_records:
+                match_data = matrix_records[clean_drug]
                 st.markdown("### 📋 AMCI Standardized Alphabetic Index Pathway")
-                
-                # Visual hierarchy breakdown tree
                 st.code(f"""
 Index Search Path:
 └── 1. Main Term: {match_data['main_term']}
@@ -108,15 +89,11 @@ Index Search Path:
                 * **🩺 Linked Indication:** {match_data['disease']}
                 """)
             else:
-                st.warning("⚠️ Compound validated on federal network, but administrative ICD-10 clinical data translation requires dictionary expansion.")
+                st.warning("⚠️ Compound validated on federal network, but administrative ICD-10 clinical data translation requires database mapping expansion.")
         else:
             st.error("❌ Compound query rejected: Molecular structure name not recognized by NIH registries.")
-            
     except Exception as network_issue:
         st.error(f"❌ Network handshaking error failed: {network_issue}")
-
-st.markdown("---")
-st.caption("Developed as an applied research informatics tool linking computational biology datasets with healthcare operational classifications.")
 `
           }
         },
