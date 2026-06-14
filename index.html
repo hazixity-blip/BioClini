@@ -60,13 +60,15 @@
         .info { background: #1e3a8a; color: #93c5fd; border-left: 4px solid var(--accent); }
         .success { background: #064e3b; color: #6ee7b7; border-left: 4px solid var(--success); }
         .error { background: #7f1d1d; color: #fca5a5; border-left: 4px solid var(--error); }
-        .warning { background: #78350f; color: #fde047; border-left: 4px solid var(--warning); padding: 15px; border-radius: 6px; }
+        .warning { background: #78350f; color: #fde047; padding: 15px; border-radius: 6px; font-size: 14px; margin-top: 5px;}
         .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; display: none; }
         .metric-card { background: #334155; padding: 15px; border-radius: 6px; text-align: center; }
         .metric-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
         .metric-value { font-size: 18px; font-weight: bold; color: var(--accent); margin-top: 5px; }
         .output-card { display: none; background: #334155; padding: 20px; border-radius: 6px; margin-top: 20px; }
-        pre { background: #0f172a; padding: 15px; border-radius: 6px; color: #38bdf8; overflow-x: auto; font-family: monospace; }
+        pre { background: #0f172a; padding: 15px; border-radius: 6px; color: #38bdf8; overflow-x: auto; font-family: monospace; font-size: 14px; line-height: 1.5; }
+        ul { padding-left: 20px; color: var(--text-main); }
+        li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -97,7 +99,6 @@
 </div>
 
 <script>
-// Localized AMCI Structural Coding Translation Matrix Sheet
 const translationMatrix = {
     "imatinib": {
         "target": "BCR-ABL Tyrosine Kinase",
@@ -137,7 +138,6 @@ async function runPipeline() {
 
     if (!cleanDrug) return;
 
-    // Reset layout view state
     outputCard.style.display = 'none';
     metricsBlock.style.display = 'none';
     statusBox.className = "status-box info";
@@ -145,7 +145,6 @@ async function runPipeline() {
     statusBox.innerHTML = `📡 Dispatching request to official U.S. NIH PubChem Servers for: <b>${cleanDrug.toUpperCase()}</b>`;
 
     try {
-        // Query the live NIH API endpoint directly from the browser code layer
         const cidRes = await fetch(`https://nih.gov{cleanDrug}/cids/JSON`);
         
         if (!cidRes.ok) {
@@ -155,26 +154,23 @@ async function runPipeline() {
         }
 
         const cidData = await cidRes.json();
-        const cid = cidData.IdentifierList.CID[0];
+        const cid = cidData.IdentifierList.CID[0]; // Fix: Target first item in list directly
 
-        // Fetch corresponding molecular formula layout details
         const formulaRes = await fetch(`https://nih.gov{cid}/property/MolecularFormula/JSON`);
         const formulaData = await formulaRes.json();
-        const formula = formulaData.PropertyTable.Properties[0].MolecularFormula;
+        const formula = formulaData.PropertyTable.Properties[0].MolecularFormula; // Fix: Target data structure correctly
 
-        // Render data dashboard metrics block
         statusBox.className = "status-box success";
         statusBox.innerHTML = "✅ Connection Established! Registry Entry Located.";
         document.getElementById('cidValue').innerText = cid;
         document.getElementById('formulaValue').innerText = formula;
         metricsBlock.style.display = 'grid';
 
-        // Evaluate AMCI parsing logic layer match
         if (cleanDrug in translationMatrix) {
             const match = translationMatrix[cleanDrug];
             outputCard.innerHTML = `
                 <h3>📋 AMCI Standardized Alphabetic Index Pathway</h3>
-                <pre>Index Search Path:\n└── 1. Main Term: ${match.main_term}\n    └── 2. Subterm: {match.subterm_1}\n        └── 3. Specificity: ${match.subterm_2}\n            └── 🎯 Final Tabular Verification: ${match.icd10}</pre>
+                <pre>Index Search Path:\n└── 1. Main Term: ${match.main_term}\n    └── 2. Subterm: ${match.subterm_1}\n        └── 3. Specificity: ${match.subterm_2}\n            └── 🎯 Final Tabular Verification: ${match.icd10}</pre>
                 <h3>🚨 Coding Guideline & Rationale</h3>
                 <div class="warning">${match.guideline}</div>
                 <h3>🏥 Clinical Data Summary</h3>
