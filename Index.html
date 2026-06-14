@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bio-Clinical Translation Pipeline</title>
+    <link rel="stylesheet" href="https://jsdelivr.net" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://jsdelivr.net"></script>
+    <script>
+      stlite.mount(
+        {
+          requirements: ["requests"],
+          entrypoint: "app.py",
+          files: {
+            "app.py": `
+import streamlit as st
+import requests
+
+st.set_page_config(page_title="Bio-Clinical Pipeline", page_icon="🧬", layout="centered")
+
+st.title("🧬 Bio-Clinical Informatics Platform")
+st.write("An API-driven system bridging molecular discovery data registries with clinical AMCI coding standards.")
+
+st.markdown("---")
+
+user_drug = st.text_input("Enter a Targeted Therapy Generic Drug Name:", placeholder="e.g., imatinib, trastuzumab, olaparib")
+
+if user_drug:
+    clean_drug = user_drug.lower().strip()
+    st.info(f"📡 Dispatching network request to official U.S. NIH PubChem Servers for: **{clean_drug.upper()}**")
+    
+    domain = "https://nih.gov"
+    path = f"/rest/pug/compound/name/{clean_drug}/cids/JSON"
+    target_api_url = domain + path
+    
+    try:
+        response = requests.get(target_api_url, timeout=10)
+        
+        if response.status_code == 200:
+            payload = response.json()
+            compound_id = payload["IdentifierList"]["CID"]
+            
+            st.success(f"✅ Connection Established! Registry Entry Located.")
+            
+            formula_api_url = f"{domain}/rest/pug/compound/cid/{compound_id}/property/MolecularFormula/JSON"
+            formula_response = requests.get(formula_api_url).json()
+            formula_string = formula_response["PropertyTable"]["Properties"]["MolecularFormula"]
+            
+            # THE EXPERT UPGRADE: Advanced Translation Matrix with Strict AMCI Guidelines
+            translation_matrix = {
+                "imatinib": {
+                    "target": "BCR-ABL Tyrosine Kinase",
+                    "disease": "Chronic Myeloid Leukemia (CML), BCR-ABL positive",
+                    "icd10": "C92.10",
+                    "main_term": "Leukemia",
+                    "subterm_1": "Myeloid (granulocytic)",
+                    "subterm_2": "Chronic (BCR-ABL positive)",
+                    "guideline": "ICD-10-CM Chapter 2 Neoplasm Guidelines state that systemic malignancies of lymphatic and hematopoietic tissue must follow specific cellular lineage classifications. For CML, 'C92.10' is selected as it specifies the chronic phase without mention of remission."
+                },
+                "trastuzumab": {
+                    "target": "HER2 Receptor Overexpression",
+                    "disease": "Malignant Neoplasm of Breast (HER2 Positive)",
+                    "icd10": "C50.919",
+                    "main_term": "Neoplasm",
+                    "subterm_1": "Breast, Malignant Primary",
+                    "subterm_2": "Unspecified site, unspecified female breast",
+                    "guideline": "According to the ICD-10-CM Neoplasm Table, breast malignancies are classified by anatomical site quadrant and laterality. When clinical trial documentation lacks specific laterality parameters, code selection defaults to 'C50.919' for unspecified malignant primary breast sites."
+                },
+                "olaparib": {
+                    "target": "PARP Genetic Repair Enzyme",
+                    "disease": "Malignant Neoplasm of Ovary",
+                    "icd10": "C56.9",
+                    "main_term": "Neoplasm",
+                    "subterm_1": "Ovary, Malignant Primary",
+                    "subterm_2": "Unspecified ovary",
+                    "guideline": "Per ICD-10-CM Chapter 2 guidelines, primary malignant solid tumors are coded to the site of origin. For ovarian cancer targeting BRCA mutations via PARP inhibitors, code 'C56.9' is assigned for unspecified laterality based on default index listings."
+                }
+            }
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(label="PubChem Compound ID", value=str(compound_id))
+            with col2:
+                st.metric(label="Molecular Structure", value=str(formula_string))
+                
+            if clean_drug in translation_matrix:
+                match_data = translation_matrix[clean_drug]
+                st.markdown("### 📋 AMCI Standardized Alphabetic Index Pathway")
+                
+                # Visual hierarchy breakdown tree
+                st.code(f"""
+Index Search Path:
+└── 1. Main Term: {match_data['main_term']}
+    └── 2. Subterm: {match_data['subterm_1']}
+        └── 3. Specificity: {match_data['subterm_2']}
+            └── 🎯 Final Tabular Verification: {match_data['icd10']}
+                """)
+                
+                st.markdown("### 🚨 Coding Guideline & Rationale")
+                st.warning(match_data['guideline'])
+                
+                st.markdown("### 🏥 Clinical Data Summary")
+                st.markdown(f"""
+                * **🧬 Biomarker Target:** {match_data['target']}
+                * **🩺 Linked Indication:** {match_data['disease']}
+                """)
+            else:
+                st.warning("⚠️ Compound validated on federal network, but administrative ICD-10 clinical data translation requires dictionary expansion.")
+        else:
+            st.error("❌ Compound query rejected: Molecular structure name not recognized by NIH registries.")
+            
+    except Exception as network_issue:
+        st.error(f"❌ Network handshaking error failed: {network_issue}")
+
+st.markdown("---")
+st.caption("Developed as an applied research informatics tool linking computational biology datasets with healthcare operational classifications.")
+`
+          }
+        },
+        document.getElementById("root")
+      );
+    </script>
+  </body>
+</html>
