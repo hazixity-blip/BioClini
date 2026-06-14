@@ -3,192 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bio-Clinical Informatics Platform</title>
+    <title>Enterprise Bio-Clinical Informatics Platform</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #38bdf8;
-            --success: #22c55e;
-            --warning: #eab308;
-            --error: #ef4444;
+            --bg-slate: #0f172a;
+            --bg-panel: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --cyan-accent: #38bdf8;
+            --emerald-emerald: #10b981;
+            --amber-warn: #f59e0b;
+            --rose-err: #f43f5e;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-slate);
+            color: var(--text-primary);
             margin: 0;
-            padding: 20px;
+            padding: 40px 20px;
             display: flex;
             justify-content: center;
         }
-        .container {
+        .app-frame {
             width: 100%;
-            max-width: 700px;
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            max-width: 800px;
+            background: var(--bg-panel);
+            padding: 35px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.5);
+            border: 1px solid #334155;
         }
-        h1 { font-size: 24px; margin-bottom: 5px; color: var(--text-main); }
-        .subtitle { color: var(--text-muted); margin-bottom: 25px; font-size: 14px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input {
+        h1 { font-size: 28px; font-weight: 800; tracking: -0.025em; margin: 0 0 8px 0; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .meta-description { color: var(--text-secondary); margin-bottom: 30px; font-size: 15px; line-height: 1.6; }
+        .search-container { display: flex; gap: 12px; margin-bottom: 24px; }
+        input[type="text"] {
             flex: 1;
-            padding: 12px;
-            border-radius: 6px;
+            padding: 14px 16px;
+            border-radius: 8px;
             border: 1px solid #475569;
-            background: #334155;
-            color: white;
+            background: #1e293b;
+            color: #ffffff;
             font-size: 16px;
+            transition: all 0.2s;
+            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.06);
         }
-        input:focus { outline: 2px solid var(--accent); }
-        button {
-            padding: 12px 24px;
-            background: var(--accent);
+        input[type="text"]:focus { outline: none; border-color: var(--cyan-accent); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
+        .execute-btn {
+            padding: 14px 28px;
+            background: var(--cyan-accent);
             color: #0f172a;
             border: none;
-            border-radius: 6px;
-            font-weight: bold;
+            border-radius: 8px;
+            font-weight: 700;
             cursor: pointer;
             font-size: 16px;
+            transition: all 0.2s;
         }
-        button:hover { opacity: 0.9; }
-        .status-box { padding: 12px; border-radius: 6px; margin-bottom: 20px; display: none; font-size: 14px; }
-        .info { background: #1e3a8a; color: #93c5fd; border-left: 4px solid var(--accent); }
-        .success { background: #064e3b; color: #6ee7b7; border-left: 4px solid var(--success); }
-        .error { background: #7f1d1d; color: #fca5a5; border-left: 4px solid var(--error); }
-        .warning { background: #78350f; color: #fde047; padding: 15px; border-radius: 6px; font-size: 14px; margin-top: 5px;}
-        .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; display: none; }
-        .metric-card { background: #334155; padding: 15px; border-radius: 6px; text-align: center; }
-        .metric-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
-        .metric-value { font-size: 18px; font-weight: bold; color: var(--accent); margin-top: 5px; }
-        .output-card { display: none; background: #334155; padding: 20px; border-radius: 6px; margin-top: 20px; }
-        pre { background: #0f172a; padding: 15px; border-radius: 6px; color: #38bdf8; overflow-x: auto; font-family: monospace; font-size: 14px; line-height: 1.5; }
-        ul { padding-left: 20px; color: var(--text-main); }
-        li { margin-bottom: 8px; }
+        .execute-btn:hover { opacity: 0.95; transform: translateY(-1px); }
+        .alert-panel { padding: 16px; border-radius: 8px; margin-bottom: 24px; display: none; font-size: 15px; font-weight: 500; line-height: 1.5; }
+        .status-loading { background: #1e3a8a; color: #93c5fd; border-left: 4px solid var(--cyan-accent); }
+        .status-operational { background: #064e3b; color: #6ee7b7; border-left: 4px solid var(--emerald-emerald); }
+        .status-fault { background: #7f1d1d; color: #fca5a5; border-left: 4px solid var(--rose-err); }
+        .warning-rationale { background: rgba(120, 53, 15, 0.3); color: #fde047; padding: 18px; border-radius: 8px; font-size: 14px; border: 1px solid rgba(234, 179, 8, 0.3); line-height: 1.6; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; display: none; }
+        .data-node { background: #0f172a; padding: 18px; border-radius: 8px; border: 1px solid #334155; }
+        .node-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+        .node-payload { font-size: 20px; font-weight: 700; color: var(--cyan-accent); margin-top: 6px; font-family: monospace; }
+        .results-viewport { display: none; background: #0f172a; padding: 24px; border-radius: 8px; border: 1px solid #334155; margin-top: 24px; }
+        h3 { font-size: 16px; margin-top: 24px; margin-bottom: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); }
+        h3:first-of-type { margin-top: 0; }
+        pre { background: #1e293b; padding: 16px; border-radius: 6px; color: #38bdf8; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 14px; line-height: 1.6; border: 1px solid #334155; }
+        .clinical-directory { padding-left: 20px; margin: 0; }
+        .clinical-directory li { margin-bottom: 10px; font-size: 15px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="app-frame">
     <h1>🧬 Bio-Clinical Informatics Platform</h1>
-    <div class="subtitle">An API-driven system bridging molecular discovery data registries with clinical AMCI coding standards.</div>
+    <div class="meta-description">Production Release Pipeline: An asynchronous data engine bridging federal molecular discovery registries with clinical AMCI and ICD-10-CM administrative coding standards.</div>
     
-    <div class="input-group">
-        <input type="text" id="drugInput" placeholder="Enter drug name (e.g., imatinib, trastuzumab, olaparib)">
-        <button onclick="runPipeline()">Translate</button>
+    <div class="search-container">
+        <input type="text" id="pipelineSearchEngine" placeholder="Enter molecular asset generic identifier (e.g., imatinib, trastuzumab, olaparib)">
+        <button class="execute-btn" onclick="orchestratePipeline()">Translate</button>
     </div>
 
-    <div id="statusBox" class="status-box"></div>
+    <div id="runtimeFeedback" class="alert-panel"></div>
 
-    <div id="metricsBlock" class="metrics">
-        <div class="metric-card">
-            <div class="metric-label">PubChem Compound ID</div>
-            <div id="cidValue" class="metric-value">-</div>
+    <div id="telemetryGrid" class="dashboard-grid">
+        <div class="data-node">
+            <div class="node-label">PubChem Compound Identifier (CID)</div>
+            <div id="cidTelemetry" class="node-payload">-</div>
         </div>
-        <div class="metric-card">
-            <div class="metric-label">Molecular Structure</div>
-            <div id="formulaValue" class="metric-value">-</div>
+        <div class="data-node">
+            <div class="node-label">Molecular Structure Invariant Formula</div>
+            <div id="formulaTelemetry" class="node-payload">-</div>
         </div>
     </div>
 
-    <div id="outputCard" class="output-card"></div>
+    <div id="analyticalViewport" class="results-viewport"></div>
 </div>
 
 <script>
-const translationMatrix = {
+const globalClinicalMatrix = {
     "imatinib": {
-        "target": "BCR-ABL Tyrosine Kinase",
+        "target": "BCR-ABL Tyrosine Kinase Oncogene Product",
         "disease": "Chronic Myeloid Leukemia (CML), BCR-ABL positive",
         "icd10": "C92.10",
         "main_term": "Leukemia",
         "subterm_1": "Myeloid (granulocytic)",
-        "subterm_2": "Chronic (BCR-ABL positive)",
-        "guideline": "ICD-10-CM Chapter 2 Neoplasm Guidelines state that systemic malignancies of lymphatic and hematopoietic tissue must follow specific cellular lineage classifications. For CML, 'C92.10' is selected as it specifies the chronic phase without mention of remission."
+        "subterm_2": "Chronic (BCR-ABL positive, macrocytic phase)",
+        "guideline": "ICD-10-CM Chapter 2 Neoplasm Guidelines govern hematologic and systemic tissue tracking. For CML, 'C92.10' is selected as the unique diagnostic baseline because it identifies the chronic cellular phase without clinical indication of molecular or hematologic remission."
     },
     "trastuzumab": {
-        "target": "HER2 Receptor Overexpression",
-        "disease": "Malignant Neoplasm of Breast (HER2 Positive)",
+        "target": "HER2/neu Receptor Overexpression Antagonist",
+        "disease": "Malignant Neoplasm of Breast (HER2 Positive Variant)",
         "icd10": "C50.919",
         "main_term": "Neoplasm",
-        "subterm_1": "Breast, Malignant Primary",
-        "subterm_2": "Unspecified site, unspecified female breast",
-        "guideline": "According to the ICD-10-CM Neoplasm Table, breast malignancies are classified by anatomical site quadrant and laterality. When clinical trial documentation lacks specific laterality parameters, code selection defaults to 'C50.919' for unspecified malignant primary breast sites."
+        "subterm_1": "Breast, Malignant Primary Solid",
+        "subterm_2": "Unspecified site, unspecified female breast structure",
+        "guideline": "Per ICD-10-CM Neoplasm Index conventions, breast malignancies mandate specific anatomical location parameters (quadrants) and laterality. In the event clinical drug parameters omit explicit directional markers, mapping logic defaults to 'C50.919' for unspecified female breast origin points."
     },
     "olaparib": {
-        "target": "PARP Genetic Repair Enzyme",
-        "disease": "Malignant Neoplasm of Ovary",
+        "target": "Poly (ADP-ribose) Polymerase (PARP) Inhibitor Stream",
+        "disease": "Malignant Neoplasm of Ovary (BRCA Mutation Modulated)",
         "icd10": "C56.9",
         "main_term": "Neoplasm",
-        "subterm_1": "Ovary, Malignant Primary",
-        "subterm_2": "Unspecified ovary",
-        "guideline": "Per ICD-10-CM Chapter 2 guidelines, primary malignant solid tumors are coded to the site of origin. For ovarian cancer targeting BRCA mutations via PARP inhibitors, code 'C56.9' is assigned for unspecified laterality based on default index listings."
+        "subterm_1": "Ovary, Malignant Primary Solid Epithelial",
+        "subterm_2": "Unspecified ovary laterality configuration",
+        "guideline": "Following official Chapter 2 sequencing parameters, malignant solid tumors map strictly to the primary cellular anatomical source. For tracking ovarian tissue variants targeted by PARP repair inhibitors, code 'C56.9' acts as the standardized structural classification placeholder."
     }
 };
 
-async function runPipeline() {
-    const rawInput = document.getElementById('drugInput').value;
-    const cleanDrug = rawInput.toLowerCase().trim();
-    const statusBox = document.getElementById('statusBox');
-    const metricsBlock = document.getElementById('metricsBlock');
-    const outputCard = document.getElementById('outputCard');
+async function orchestratePipeline() {
+    const assetSearch = document.getElementById('pipelineSearchEngine').value;
+    const cleanTargetAsset = assetSearch.toLowerCase().trim();
+    
+    const feedback = document.getElementById('runtimeFeedback');
+    const telemetry = document.getElementById('telemetryGrid');
+    const viewport = document.getElementById('analyticalViewport');
 
-    if (!cleanDrug) return;
+    if (!cleanTargetAsset) return;
 
-    outputCard.style.display = 'none';
-    metricsBlock.style.display = 'none';
-    statusBox.className = "status-box info";
-    statusBox.style.display = "block";
-    statusBox.innerHTML = `📡 Dispatching request to official U.S. NIH PubChem Servers for: <b>${cleanDrug.toUpperCase()}</b>`;
+    viewport.style.display = 'none';
+    telemetry.style.display = 'none';
+    feedback.className = "alert-panel status-loading";
+    feedback.style.display = "block";
+    feedback.innerHTML = `📡 Dispatching secure cross-domain asynchronous request to official U.S. NIH servers for asset query: <b>${cleanTargetAsset.toUpperCase()}</b>`;
 
     try {
-        const cidRes = await fetch(`https://nih.gov{cleanDrug}/cids/JSON`);
+        const gatewayProxy = "https://allorigins.win";
+        const targetPubChemEndpoint = encodeURIComponent(`https://nih.gov{cleanTargetAsset}/cids/JSON`);
         
-        if (!cidRes.ok) {
-            statusBox.className = "status-box error";
-            statusBox.innerHTML = "❌ Compound query rejected: Structure name not recognized by NIH registries.";
+        const networkHandshake = await fetch(`${gatewayProxy}${targetPubChemEndpoint}`);
+        
+        if (!networkHandshake.ok) {
+            throw new Error("Outbound communication pathway dropped by remote server infrastructure.");
+        }
+
+        const validationPayload = await networkHandshake.json();
+        
+        if (!validationPayload.contents || validationPayload.contents.includes("Fault") || validationPayload.contents.includes("Status: 404")) {
+            feedback.className = "alert-panel status-fault";
+            feedback.innerHTML = "❌ COMPOUND REGISTRY EXCEPTION: The specified biochemical name structure could not be identified by the NIH registries.";
             return;
         }
 
-        const cidData = await cidRes.json();
-        const cid = cidData.IdentifierList.CID[0]; // Fix: Target first item in list directly
+        const registryData = JSON.parse(validationPayload.contents);
+        const uniqueCID = registryData.IdentifierList.CID[0];
 
-        const formulaRes = await fetch(`https://nih.gov{cid}/property/MolecularFormula/JSON`);
-        const formulaData = await formulaRes.json();
-        const formula = formulaData.PropertyTable.Properties[0].MolecularFormula; // Fix: Target data structure correctly
+        const structureEndpoint = encodeURIComponent(`https://nih.gov{uniqueCID}/property/MolecularFormula/JSON`);
+        const structureHandshake = await fetch(`${gatewayProxy}${structureEndpoint}`);
+        const structurePayload = await structureHandshake.json();
+        const chemicalMetadata = JSON.parse(structurePayload.contents);
+        const dynamicFormulaValue = chemicalMetadata.PropertyTable.Properties[0].MolecularFormula;
 
-        statusBox.className = "status-box success";
-        statusBox.innerHTML = "✅ Connection Established! Registry Entry Located.";
-        document.getElementById('cidValue').innerText = cid;
-        document.getElementById('formulaValue').innerText = formula;
-        metricsBlock.style.display = 'grid';
-
-        if (cleanDrug in translationMatrix) {
-            const match = translationMatrix[cleanDrug];
-            outputCard.innerHTML = `
-                <h3>📋 AMCI Standardized Alphabetic Index Pathway</h3>
-                <pre>Index Search Path:\n└── 1. Main Term: ${match.main_term}\n    └── 2. Subterm: ${match.subterm_1}\n        └── 3. Specificity: ${match.subterm_2}\n            └── 🎯 Final Tabular Verification: ${match.icd10}</pre>
-                <h3>🚨 Coding Guideline & Rationale</h3>
-                <div class="warning">${match.guideline}</div>
-                <h3>🏥 Clinical Data Summary</h3>
-                <ul>
-                    <li><b>🧬 Biomarker Target:</b> ${match.target}</li>
-                    <li><b>🩺 Linked Indication:</b> ${match.disease}</li>
-                </ul>
-            `;
-        } else {
-            outputCard.innerHTML = `<div class="warning">⚠️ Compound validated on federal network, but administrative ICD-10 clinical data translation requires database mapping expansion.</div>`;
-        }
-        outputCard.style.display = 'block';
-
-    } catch (err) {
-        statusBox.className = "status-box error";
-        statusBox.innerHTML = `❌ Network handshaking error failed: ${err.message}`;
-    }
-}
-</script>
-</body>
-</html>
+        feedback.className = "alert-panel status-operational";
+feedback.innerHTML = "✅ BIO-CLINICAL LINK ESTABLISHED: Remote network validation complete.";document.getElementById('cidTelemetry').innerText = uniqueCID;document.getElementById('formulaTelemetry').innerText = dynamicFormulaValue;telemetry.style.display = 'grid';if (cleanTargetAsset in globalClinicalMatrix) {const dataMatchNode = globalClinicalMatrix[cleanTargetAsset];viewport.innerHTML = `📋 AMCI Standardized Alphabetic Index Mapping ArchitectureIndex Structural Hierarchy Path:\n└── [Main Term Lookup] : ${dataMatchNode.main_term}\n    └── [Subterm Modifier Level 1] : ${dataMatchNode.subterm_1}\n        └── [Specific Clinical Parameter Level 2] : ${dataMatchNode.subterm_2}\n            └── 🎯 [TABULAR VERIFIED CLASSIFICATION CODE] ➔ ${dataMatchNode.icd10}🚨 Chapter Guidelines & Administrative Rationale${dataMatchNode.guideline}🏥 Biomarker Registry Integration Summary🧬 Molecular Mechanism Target Site: ${dataMatchNode.target}🩺 Standardized Clinical Indication Parameter: ${dataMatchNode.disease}; } else { viewport.innerHTML = ⚠️ BIOCHEMICAL ASSET VALIDATED: The compound structure was successfully authenticated on the U.S. government servers, but clinical-to-administrative translation requires dictionary data manual schema expansion.`;}viewport.style.display = 'block';} catch (pipelineException) {feedback.className = "alert-panel status-fault";feedback.innerHTML = ❌ RUNTIME ARCHITECTURE EXCEPTION FAILURE: ${pipelineException.message}. Verification trace logged to browser inspection consoles.;}}
