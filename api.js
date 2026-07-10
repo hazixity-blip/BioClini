@@ -98,15 +98,15 @@ const API = (() => {
     return db ? db.propValue : null;
   });
 
-  /* ── SNOMED CT via NLM Value Set Authority ───────────────── */
+  /* ── SNOMED CT ───────────────────────────────────────────── */
+  // Note: NLM's clinicaltables.nlm.nih.gov does NOT expose free SNOMED search
+  // (it 404s — that endpoint requires a UMLS license). There is no fully open,
+  // no-auth SNOMED CT search API. We fall back to a browser deep-link instead
+  // of a live code lookup, so the UI shows "search on Snowstorm" rather than
+  // failing silently.
   const getSNOMED = safe(async (term) => {
-    const data = await fetchJSON(
-      `https://clinicaltables.nlm.nih.gov/api/snomed_ct/v3/search?terms=${encodeURIComponent(term)}&maxList=3&df=code,display`
-    );
-    // returns [total, [codes], {}, [[code, display], ...]]
-    if (!data || !data[3] || !data[3].length) return null;
-    return data[3].map(row => ({ code: row[0], display: row[1] }));
-  });
+    return null; // intentionally disabled — see note above
+  }, 'getSNOMED');
 
   /* ── ICD-10-CM ───────────────────────────────────────────── */
   const getICD10 = safe(async (term) => {
@@ -256,6 +256,15 @@ const API = (() => {
         desc: snomed[0].display,
         url: `https://browser.ihtsdotools.org/?perspective=full&conceptId1=${snomed[0].code}`,
       });
+    } else {
+      codes.push({
+        system: 'SNOMED CT',
+        tagClass: 'tag-snomed',
+        code: '—',
+        label: 'No free public API available',
+        desc: 'SNOMED CT search requires a UMLS license. Search manually on the browser below.',
+        url: `https://browser.ihtsdotools.org/?perspective=full&search=${encodeURIComponent(rx.name)}`,
+      });
     }
 
     if (mesh) {
@@ -298,6 +307,15 @@ const API = (() => {
           desc: item.display,
           url: `https://browser.ihtsdotools.org/?perspective=full&conceptId1=${item.code}`,
         });
+      });
+    } else {
+      codes.push({
+        system: 'SNOMED CT',
+        tagClass: 'tag-snomed',
+        code: '—',
+        label: 'No free public API available',
+        desc: 'SNOMED CT search requires a UMLS license. Search manually on the browser below.',
+        url: `https://browser.ihtsdotools.org/?perspective=full`,
       });
     }
 
