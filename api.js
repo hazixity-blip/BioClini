@@ -17,10 +17,17 @@ const API = (() => {
     return res.json();
   }
 
-  function safe(fn) {
+  function safe(fn, label) {
+    const tag = label || fn.name || 'call';
     return async (...args) => {
-      try { return await fn(...args); }
-      catch (e) { console.warn(e); return null; }
+      try {
+        const result = await fn(...args);
+        console.log(`[MedCode] ${tag} succeeded:`, result);
+        return result;
+      } catch (e) {
+        console.error(`[MedCode] ${tag} FAILED:`, e.message);
+        return null;
+      }
     };
   }
 
@@ -28,13 +35,14 @@ const API = (() => {
   const getRxNorm = safe(async (term) => {
     const BASE = 'https://rxnav.nlm.nih.gov/REST';
     // 1. find RXCUI
-    const approx = await fetchJSON(`${BASE}/approximateTerm.json?term=${encodeURIComponent(term)}&maxEntries=1`);
+    const approx = await fetchJSON(`${BASE}/approximateTerm.json?term=${encodeURIComponent(term)}&maxEntries=5`);
     const candidates = approx?.approximateGroup?.candidate;
     if (!candidates?.length) return null;
     const rxcui = candidates[0].rxcui;
     const name  = candidates[0].name;
     const score = candidates[0].score;
-    if (parseInt(score) < 50) return null;
+    // lowered from 50 — many valid single-word drug names score 4-20 in this API
+    if (parseInt(score) < 4) return null;
 
     // 2. get ATC and properties in parallel
     const [propData, atcData] = await Promise.all([
@@ -148,9 +156,13 @@ const API = (() => {
     if (hint === 'drug') return 'drug';
     if (hint === 'condition') return 'disease';
     if (DRUG_HINTS.test(term)) return 'drug';
-    // try RxNorm — if we get a high-confidence match, it's a drug
-    const rx = await getRxNorm(term);
-    return rx ? 'drug' : 'disease';
+    // try RxNorm AND ICD10 in parallel, pick whichever answers
+    const [rx, icd] = await Promise.all([getRxNorm(term), getICD10(term)]);
+    console.log('[MedCode] detectType — rx:', rx, 'icd:', icd);
+    if (rx && !icd) return 'drug';
+    if (icd && !rx) return 'disease';
+    if (rx && icd) return 'drug'; // ambiguous — default to drug, user can override with the radio buttons
+    return 'disease';
   }
 
   /* ── Main lookup ─────────────────────────────────────────── */
