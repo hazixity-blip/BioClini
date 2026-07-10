@@ -57,15 +57,35 @@ const API = (() => {
       name: propData?.properties?.name ?? name,
       synonym: propData?.properties?.synonym ?? '',
       atc: atcCodes,
+      score: parseInt(score),
     };
   });
 
   /* ── OpenFDA NDC ─────────────────────────────────────────── */
+  // NDC codes attach to specific PRODUCTS (e.g. "lisinopril 10mg tablet"),
+  // not bare ingredient concepts. If the RXCUI we have is an ingredient (IN),
+  // we first find a related clinical-drug (SCD) RXCUI, then fetch NDCs for that.
   const getNDC = safe(async (rxcui) => {
-    const data = await fetchJSON(
-      `https://rxnav.nlm.nih.gov/REST/rxcui/${rxcui}/ndcs.json`
-    );
-    const ndcs = data?.ndcGroup?.ndcList?.ndc ?? [];
+    let targetRxcui = rxcui;
+
+    // check if this RXCUI has NDCs directly
+    let data = await fetchJSON(`https://rxnav.nlm.nih.gov/REST/rxcui/${rxcui}/ndcs.json`);
+    let ndcs = data?.ndcGroup?.ndcList?.ndc ?? [];
+
+    if (!ndcs.length) {
+      // fall back: find related SCD (clinical drug) concepts for this ingredient
+      const related = await fetchJSON(
+        `https://rxnav.nlm.nih.gov/REST/rxcui/${rxcui}/related.json?tty=SCD+SBD`
+      ).catch(() => null);
+      const groups = related?.relatedGroup?.conceptGroup ?? [];
+      const firstProduct = groups.flatMap(g => g.conceptProperties ?? [])[0];
+      if (firstProduct) {
+        targetRxcui = firstProduct.rxcui;
+        data = await fetchJSON(`https://rxnav.nlm.nih.gov/REST/rxcui/${targetRxcui}/ndcs.json`);
+        ndcs = data?.ndcGroup?.ndcList?.ndc ?? [];
+      }
+    }
+
     if (!ndcs.length) return [];
     // return up to 3, formatted
     return ndcs.slice(0, 3).map(n => {
@@ -75,7 +95,7 @@ const API = (() => {
         ? `${clean.slice(0,5)}-${clean.slice(5,9)}-${clean.slice(9)}`
         : n;
     });
-  });
+  }, 'getNDC');
 
   /* ── DrugBank (via RxNorm cross-ref) ─────────────────────── */
   const getDrugBankId = safe(async (rxcui) => {
@@ -159,9 +179,19 @@ const API = (() => {
     // try RxNorm AND ICD10 in parallel, pick whichever answers
     const [rx, icd] = await Promise.all([getRxNorm(term), getICD10(term)]);
     console.log('[MedCode] detectType — rx:', rx, 'icd:', icd);
-    if (rx && !icd) return 'drug';
-    if (icd && !rx) return 'disease';
-    if (rx && icd) return 'drug'; // ambiguous — default to drug, user can override with the radio buttons
+
+    // a RxNorm hit only counts as a confident drug match if either:
+    //  (a) the matched name is close to what was typed, or
+    //  (b) the fuzzy-match score is reasonably high
+    // this stops loose fuzzy matches like "hypertension" -> "investigational
+    // anti-hypertensive drugs" from masquerading as a real drug match
+    const normalized = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const closeNameMatch = rx && normalized(rx.name).includes(normalized(term));
+    const confidentDrug = rx && (closeNameMatch || rx.score >= 50);
+
+    if (confidentDrug && !icd) return 'drug';
+    if (icd && !confidentDrug) return 'disease';
+    if (confidentDrug && icd) return 'drug'; // genuinely ambiguous — default to drug, user can override with radio buttons
     return 'disease';
   }
 
